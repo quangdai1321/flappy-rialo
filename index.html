@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Flappy Rialo — Basic</title>
+<style>
+  html, body { height:100%; margin:0; padding:0; background:#0b0b0b; color:#eee; font-family:Arial, Helvetica, sans-serif; }
+  #wrap { position:relative; width:420px; margin:20px auto; }
+  canvas { display:block; width:420px; height:680px; background:linear-gradient(#0d0f14,#111827); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  .overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .card { background:rgba(0,0,0,.35); padding:16px 20px; border-radius:12px; }
+  .btn { display:inline-block; padding:8px 14px; background:#f4f0e6; color:#111; font-weight:700; border-radius:999px; text-decoration:none; margin-top:8px; }
+  .score { position:absolute; top:8px; left:10px; font-weight:700; }
+  .best { position:absolute; top:8px; right:10px; opacity:.8; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="420" height="680"></canvas>
+  <div class="score" id="score">0</div>
+  <div class="best" id="best">Best: 0</div>
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <div style="font-size:20px; font-weight:800; margin-bottom:6px;">Flappy Rialo</div>
+      <div>Nhấn <b>Space</b> / <b>Click</b> / <b>Chạm</b> để bay</div>
+      <a href="#" class="btn" id="startBtn">Bắt đầu</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFcAAAA3CAIAAAD2XkFhAAAEM0lEQVR4AeyZeUhUQRzHpf6w1Ki0KIuIaMnMzUrayl2PTLrtMLsvLSXKNFCMkAzDTMS80sQyryDzLKHUzJPyWrW8SC1JTTQ10DVTA0Gx37Ag4nu6s0/nPf8Y+c3j7W++M+/7+zA+dmbnadA/DQ1KAa0CSoFSQARQo2uBUkAEUKNrgVJABFCja4FSQARQo2uBXwpenu7VFQXd7fXTR0NtsYuzI7LGY+NpLSS+jILa9PVXqCxNV3cp8IqLDlOpnEUBHxR2W0itLGVqmT6439pkm7FaQ2Yi5oOCRGLCwaKluZTDKG5D+KAwODDIwZxItG58FOkbPihkZOVyKMPaynyRjg6HgRyG8EGhveOXp5evuuaWLFkcGHBf3VHc9HxQAGdxLxKlFoceBT0pKpaXySv7+v5AUmUcO3KwMDf9zm1XD/eb8IpVqecs4IkC+GtpbQsKjTx1ztH2lIOhsWzlGiMHR9eGxibomiYMN25wu3Xdw805KeF5yqtoTU3NacScu/ijwLSYnVOwZ59tTe1XZhdrxsLc9JrTJdauGSaFpKC0Hvw4UnmDc7WztcGRqasRnkJbWwe+aT09XXwxvlJ4CgYGIny7NTW4/z74c4JSeAquzk7gAyfGxsYCQyJwlOpqhKSwdYv4TUr8ZrEhjumq6rrjdpdr6+pxxOpqCFJYv36dv9+9vOzXE7fSX+R579IT0lPjq8rzszOSpaYSpeOurt8P/IJPnHZgDZOd1oeOniuvrFKKZ/1KigIgyMlMcbh0Vmy0caLp1av1Jdu3mu6SrFq1cjzf06M4cuJiRGRMaVkla3R2do+LSdyQouB910NbWwvTsY9fYEdHJ6aYhIwUBZl0B77doiI5vpiEkhQF/IVAoip155wdCsynVlRWM5NTZeCr8VRd/ORJUQgICscvwNvLg8/zNaYxUhSKS8plu23CI6LzCz41t/yEBysUfY3fmmBbrQx5+ef+/r+Qh4AT16y3iWlJsbCDNt5sBBmegxQFKKO5ufWhf8gF+xsyy8Owj960xcxqry1sq5Vx/KS9gdg0NPwZKJVhJtsJO+icrJTUxJjly/SUSX6uBCngFOAfEJb5Pm+S0txsV1py7KQk0Y8CU4DankbFwXVSGGwQwWH8pCS5j8JT+NGM3hrMCsVirP0FcyCHjPAUpjqDHB0Z4VAPtyHCU9DR0Wa1Pm/+fNY8ieQcoKDNTkFr4QISBbPOKTwFLa2FrM4IHTezPkt4CiMjo6zO4GSJNU8iKTyFXoWCtbCBQS6/brJOpTIpPIWhoX/1Dd+ZRgkdtDIfBBnhKYAJH99AuE4M4PIht3Bihuj9nKDwsaj0gM2ZktKK4eFhqBbqP30e92Aa9LgxtW5OUAB78Dud3Zkra0UmsO+yv+rS28v+sgAliZgrFEjUhj8npYBYUQqUAiKAGl0LlAIigBpdC4jCfwAAAP//qA/MjQAAAAZJREFUAwA02VB+RnULSAAAAABJRU5ErkJggg==";
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var overlay = document.getElementById('overlay');
+  var startBtn = document.getElementById('startBtn');
+  var scoreEl = document.getElementById('score');
+  var bestEl = document.getElementById('best');
+
+  var best = Number(localStorage.getItem('flappy_rialo_best') || 0);
+  bestEl.textContent = "Best: " + best;
+
+  var W = canvas.width, H = canvas.height;
+  var FLOOR = H - 40;
+
+  var G = 0.48;
+  var JUMP = -8;
+  var PIPE_GAP = 150;
+  var PIPE_W = 70;
+  var PIPE_SPACING = 160;
+
+  var state = "idle";
+  var bird = null;
+  var pipes = [];
+  var frame = 0;
+  var score = 0;
+  var speed = 2.6;
+
+  var birdImg = new Image();
+  birdImg.src = LOGO_SRC;
+  birdImg.onload = function(){ drawIdle(); };
+
+  function resetGame(){
+    frame = 0;
+    score = 0;
+    speed = 2.6;
+    bird = { x:120, y:H*0.45, vy:0, w:56, h:40, rot:0 };
+    pipes = [];
+    for (var i=1; i<=4; i++) spawnPipe(i * (PIPE_W + PIPE_SPACING) + 200);
+    updateScore();
+  }
+
+  function spawnPipe(x){
+    if (typeof x === "undefined") x = W + 20;
+    var topHeight = 60 + Math.random() * (H - 240);
+    var bottomY = topHeight + PIPE_GAP;
+    pipes.push({ x:x, topHeight:topHeight, bottomY:bottomY, passed:false });
+  }
+
+  function start(){
+    resetGame();
+    state = "play";
+    overlay.style.display = "none";
+    requestAnimationFrame(loop);
+  }
+
+  function gameOver(){
+    state = "over";
+    if (score > best){ best = score; localStorage.setItem('flappy_rialo_best', String(best)); }
+    bestEl.textContent = "Best: " + best;
+    overlay.innerHTML = '<div class="card"><div style="font-size:20px; font-weight:800; margin-bottom:6px;">Game Over</div><div>Điểm: <b>' + score + '</b></div><a href="#" class="btn" id="restartBtn">Chơi lại</a></div>';
+    overlay.style.display = "flex";
+    document.getElementById('restartBtn').addEventListener('click', function(e){ e.preventDefault(); start(); }, { once:true });
+  }
+
+  function updateScore(){ scoreEl.textContent = String(score); }
+
+  function flap(){
+    if (state === "idle") start();
+    else if (state === "play") bird.vy = JUMP;
+    else if (state === "over") start();
+  }
+
+  function loop(){
+    if (state !== "play") return;
+    frame++;
+
+    bird.vy += G;
+    bird.y += bird.vy;
+    bird.rot = Math.max(-0.6, Math.min(1.2, bird.vy / 8));
+
+    for (var i=0;i<pipes.length;i++) pipes[i].x -= speed;
+
+    if (pipes.length && pipes[0].x + PIPE_W < -20) pipes.shift();
+    if (pipes.length < 5) {
+      var last = pipes.length ? pipes[pipes.length-1].x : 0;
+      if (W - last > (PIPE_W + PIPE_SPACING)) spawnPipe();
+    }
+
+    for (var j=0;j<pipes.length;j++){
+      var p = pipes[j];
+      if (!p.passed && p.x + PIPE_W < bird.x){ p.passed = true; score++; updateScore(); }
+      if (collidesPipe(bird, p)) { gameOver(); return; }
+    }
+
+    if (bird.y + bird.h/2 > FLOOR || bird.y - bird.h/2 < 0) { gameOver(); return; }
+
+    if (frame % 240 === 0) speed += 0.1;
+
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function collidesPipe(b, p){
+    var r = Math.min(b.w,b.h) * 0.45;
+    var cx = b.x, cy = b.y;
+    if (circleRect(cx, cy, r, p.x, 0, PIPE_W, p.topHeight)) return true;
+    if (circleRect(cx, cy, r, p.x, p.bottomY, PIPE_W, H - p.bottomY)) return true;
+    return false;
+  }
+
+  function circleRect(cx, cy, r, rx, ry, rw, rh){
+    var tx = Math.max(rx, Math.min(cx, rx+rw));
+    var ty = Math.max(ry, Math.min(cy, ry+rh));
+    var dx = cx - tx, dy = cy - ty;
+    return (dx*dx + dy*dy) <= r*r;
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    var grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#0d0f14'); grad.addColorStop(1,'#0f172a');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+
+    for (var i=0;i<pipes.length;i++) drawPipe(pipes[i]);
+
+    ctx.fillStyle = '#1f2937'; ctx.fillRect(0, FLOOR, W, 6);
+
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(bird.rot);
+    drawBird(-bird.w/2, -bird.h/2, bird.w, bird.h);
+    ctx.restore();
+  }
+
+  function drawPipe(p){
+    ctx.fillStyle = '#e8e2d6';
+    ctx.fillRect(p.x, 0, PIPE_W, p.topHeight);
+    ctx.fillRect(p.x-3, p.topHeight-12, PIPE_W+6, 12);
+    ctx.fillRect(p.x, p.bottomY, PIPE_W, H - p.bottomY);
+    ctx.fillRect(p.x-3, p.bottomY, PIPE_W+6, 12);
+  }
+
+function drawBird(x,y,w,h){
+  // Shadow
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(x + w*0.55, y + h*0.95, w*0.45, h*0.35, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Bo tròn logo
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x + w/2, y + h/2, Math.min(w,h)/2, 0, Math.PI*2);
+  ctx.clip();  
+  ctx.drawImage(birdImg, x, y, w, h);
+  ctx.restore();
+}
+
+
+  function drawIdle(){ resetGame(); draw(); }
+
+  window.addEventListener('keydown', function(e){ if (e.code === 'Space'){ e.preventDefault(); flap(); }});
+  canvas.addEventListener('pointerdown', flap);
+  startBtn.addEventListener('click', function(e){ e.preventDefault(); start(); });
+})();
+</script>
+</body>
+</html>
